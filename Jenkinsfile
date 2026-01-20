@@ -34,7 +34,7 @@ pipeline {
                 docker run --rm \
                   -v "$PWD:/src" \
                   owasp/dependency-check \
-                  --scan /src/docs \
+                  --scan /src \
                   --format HTML \
                   --out /src
                 '''
