@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -28,20 +27,20 @@ pipeline {
             }
         }
 
-        stage('SCA - Dependency Check (Docker)') {
+        stage('SCA - Dependency Check') {
             steps {
                 sh '''
                 docker run --rm \
-                  -v "$PWD:/src" \
-                  owasp/dependency-check:latest \
-                  --scan /src/docs \
-                  --format HTML \
-                  --out /src
+                -v "$PWD:/src" \
+                owasp/dependency-check \
+                --scan /src/docs \
+                --format HTML \
+                --out /src
                 '''
             }
         }
 
-        stage('Publish SCA Report') {
+        stage('Publish Report') {
             steps {
                 publishHTML(target: [
                     reportDir: '.',
@@ -50,21 +49,9 @@ pipeline {
                 ])
             }
         }
-
-        stage('Pipeline Complete') {
-            steps {
-                echo 'CI + SAST + SCA completed successfully'
-            }
-        }
     }
 
     post {
-        success {
-            echo 'DevSecOps pipeline SUCCESS'
-        }
-        failure {
-            echo 'DevSecOps pipeline FAILED'
-        }
         always {
             cleanWs()
         }
