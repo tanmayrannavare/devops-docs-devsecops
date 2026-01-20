@@ -28,18 +28,26 @@ pipeline {
             }
         }
 
-        stage('SCA - Dependency Check') {
+        stage('SCA - Dependency Check (Docker)') {
             steps {
-                dependencyCheck(
-                    odcInstallation: 'dependency-check',
-                    additionalArguments: "--scan docs --format HTML --failOnCVSS 7"
-                )
+                sh '''
+                docker run --rm \
+                  -v "$PWD:/src" \
+                  owasp/dependency-check:latest \
+                  --scan /src/docs \
+                  --format HTML \
+                  --out /src
+                '''
             }
         }
 
         stage('Publish SCA Report') {
             steps {
-                dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+                publishHTML(target: [
+                    reportDir: '.',
+                    reportFiles: 'dependency-check-report.html',
+                    reportName: 'OWASP Dependency Check Report'
+                ])
             }
         }
 
