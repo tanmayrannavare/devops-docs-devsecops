@@ -2,10 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME    = "devsecops-portal"
-        IMAGE_TAG     = "${BUILD_NUMBER}"
-        SONAR_SCANNER = tool 'sonar-scanner'
-        DEP_CHECK     = tool 'dependency-check'
+        IMAGE_NAME = "devsecops-portal"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -13,14 +11,16 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main',
-                    url: 'git@github.com:tanmayrannavare/devops-docs-devsecops.git'
+                    url: 'https://github.com/tanmayrannavare/devops-docs-devsecops.git'
             }
         }
 
         stage('SAST - SonarQube Scan') {
             steps {
                 withSonarQubeEnv('SonarQube-Server') {
-                    sh "${SONAR_SCANNER}/bin/sonar-scanner"
+                    sh '''
+                      sonar-scanner
+                    '''
                 }
             }
         }
@@ -35,12 +35,15 @@ pipeline {
 
         stage('SCA - Dependency Check') {
             steps {
-                sh '''
-                  ${DEP_CHECK}/bin/dependency-check.sh \
-                  --scan . \
-                  --format HTML \
-                  --out dependency-report
-                '''
+                script {
+                    def depCheckHome = tool 'dependency-check'
+                    sh """
+                      ${depCheckHome}/bin/dependency-check.sh \
+                        --scan . \
+                        --format HTML \
+                        --out dependency-report
+                    """
+                }
             }
         }
 
@@ -52,12 +55,12 @@ pipeline {
 
         stage('Container Scan - Trivy') {
             steps {
-                sh '''
+                sh """
                   trivy image \
                     --exit-code 1 \
                     --severity HIGH,CRITICAL \
                     ${IMAGE_NAME}:${IMAGE_TAG}
-                '''
+                """
             }
         }
 
@@ -67,7 +70,7 @@ pipeline {
                   docker rm -f zap-target || true
                   docker run -d -p 8081:80 \
                     --name zap-target \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
+                    devsecops-portal:${BUILD_NUMBER}
                 '''
             }
         }
@@ -78,7 +81,7 @@ pipeline {
                   chmod -R 777 .
                   docker run --rm \
                     -v $(pwd):/zap/wrk \
-                    -t zaproxy/zap-stable \
+                    zaproxy/zap-stable \
                     zap-baseline.py \
                     -t http://localhost:8081 \
                     -r zap-report.html || true
@@ -97,10 +100,10 @@ pipeline {
         always {
             script {
                 if (fileExists('dependency-report')) {
-                    archiveArtifacts artifacts: 'dependency-report/**'
+                    archiveArtifacts 'dependency-report/**'
                 }
                 if (fileExists('zap-report.html')) {
-                    archiveArtifacts artifacts: 'zap-report.*'
+                    archiveArtifacts 'zap-report.*'
                 }
             }
         }
