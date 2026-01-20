@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -31,16 +32,16 @@ pipeline {
             steps {
                 sh '''
                 docker run --rm \
-                -v "$PWD:/src" \
-                owasp/dependency-check \
-                --scan /src/docs \
-                --format HTML \
-                --out /src
+                  -v "$PWD:/src" \
+                  owasp/dependency-check \
+                  --scan /src/docs \
+                  --format HTML \
+                  --out /src
                 '''
             }
         }
 
-        stage('Publish Report') {
+        stage('Publish SCA Report') {
             steps {
                 publishHTML(target: [
                     reportDir: '.',
