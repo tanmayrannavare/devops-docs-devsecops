@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        sonarQube 'sonar-scanner'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -8,18 +12,25 @@ pipeline {
             }
         }
 
-        stage('Validate Docs') {
+        stage('SAST - SonarQube') {
             steps {
-                sh '''
-                  echo "Listing docs directory:"
-                  ls docs
-                '''
+                withSonarQubeEnv('sonarqube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('CI Complete') {
             steps {
-                echo 'CI pipeline completed successfully'
+                echo 'CI + SAST completed successfully'
             }
         }
     }
