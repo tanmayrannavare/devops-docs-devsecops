@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "devsecops-portal"
-        IMAGE_TAG  = "${BUILD_NUMBER}"
+        IMAGE_NAME   = "devsecops-portal"
+        IMAGE_TAG    = "${BUILD_NUMBER}"
         SONAR_SCANNER = tool 'sonar-scanner'
-        DEP_CHECK = tool 'dependency-check'
+        DEP_CHECK     = tool 'dependency-check'
     }
 
     stages {
@@ -58,9 +58,44 @@ pipeline {
             steps {
                 sh '''
                   trivy image \
-                  --exit-code 1 \
-                  --severity HIGH,CRITICAL \
-                  ${IMAGE_NAME}:${IMAGE_TAG}
+                    --exit-code 1 \
+                    --severity HIGH,CRITICAL \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Deploy for DAST') {
+            steps {
+                sh '''
+                  docker rm -f zap-target || true
+                  docker run -d -p 8081:80 \
+                    --name zap-target \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('DAST - OWASP ZAP') {
+            steps {
+                sh '''
+                  chmod -R 777 .
+
+                  docker run --rm \
+                    -v $(pwd):/zap/wrk \
+                    -t zaproxy/zap-stable \
+                    zap-baseline.py \
+                    -t http://localhost:8081 \
+                    -r zap-report.html \
+                    -x zap-report.xml || true
+                '''
+            }
+        }
+
+        stage('Cleanup DAST') {
+            steps {
+                sh '''
+                  docker rm -f zap-target || true
                 '''
             }
         }
@@ -69,12 +104,15 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: 'dependency-report/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'zap-report.*', allowEmptyArchive: true
         }
+
         success {
-            echo "✅ Pipeline passed: SAST + Quality Gate + SCA + Trivy"
+            echo "✅ DevSecOps Pipeline passed (SAST + SCA + Trivy + ZAP)"
         }
+
         failure {
-            echo "❌ Pipeline blocked due to security or quality issues"
+            echo "❌ Pipeline failed due to security or quality issues"
         }
     }
 }
