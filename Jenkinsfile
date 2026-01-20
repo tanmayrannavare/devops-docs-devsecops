@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME   = "devsecops-portal"
-        IMAGE_TAG    = "${BUILD_NUMBER}"
+        IMAGE_NAME    = "devsecops-portal"
+        IMAGE_TAG     = "${BUILD_NUMBER}"
         SONAR_SCANNER = tool 'sonar-scanner'
         DEP_CHECK     = tool 'dependency-check'
     }
@@ -20,9 +20,7 @@ pipeline {
         stage('SAST - SonarQube Scan') {
             steps {
                 withSonarQubeEnv('SonarQube-Server') {
-                    sh '''
-                      ${SONAR_SCANNER}/bin/sonar-scanner
-                    '''
+                    sh "${SONAR_SCANNER}/bin/sonar-scanner"
                 }
             }
         }
@@ -48,9 +46,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh '''
-                  docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                '''
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
@@ -80,39 +76,33 @@ pipeline {
             steps {
                 sh '''
                   chmod -R 777 .
-
                   docker run --rm \
                     -v $(pwd):/zap/wrk \
                     -t zaproxy/zap-stable \
                     zap-baseline.py \
                     -t http://localhost:8081 \
-                    -r zap-report.html \
-                    -x zap-report.xml || true
+                    -r zap-report.html || true
                 '''
             }
         }
 
         stage('Cleanup DAST') {
             steps {
-                sh '''
-                  docker rm -f zap-target || true
-                '''
+                sh 'docker rm -f zap-target || true'
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'dependency-report/**', allowEmptyArchive: true
-            archiveArtifacts artifacts: 'zap-report.*', allowEmptyArchive: true
-        }
-
-        success {
-            echo "✅ DevSecOps Pipeline passed (SAST + SCA + Trivy + ZAP)"
-        }
-
-        failure {
-            echo "❌ Pipeline failed due to security or quality issues"
+            script {
+                if (fileExists('dependency-report')) {
+                    archiveArtifacts artifacts: 'dependency-report/**'
+                }
+                if (fileExists('zap-report.html')) {
+                    archiveArtifacts artifacts: 'zap-report.*'
+                }
+            }
         }
     }
 }
