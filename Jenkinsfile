@@ -8,9 +8,6 @@ pipeline {
 
     stages {
 
-        /* =========================
-           CHECKOUT
-        ========================== */
         stage('Checkout Code') {
             steps {
                 git branch: 'main',
@@ -18,9 +15,6 @@ pipeline {
             }
         }
 
-        /* =========================
-           SAST – SONARQUBE
-        ========================== */
         stage('SAST - SonarQube Scan') {
             steps {
                 script {
@@ -32,20 +26,14 @@ pipeline {
             }
         }
 
-        /* =========================
-           QUALITY GATE (ASYNC SAFE)
-        ========================== */
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
+                timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        /* =========================
-           SCA – DEPENDENCY CHECK
-        ========================== */
         stage('SCA - Dependency Check') {
             steps {
                 script {
@@ -60,18 +48,12 @@ pipeline {
             }
         }
 
-        /* =========================
-           DOCKER BUILD
-        ========================== */
         stage('Docker Build') {
             steps {
                 sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
-        /* =========================
-           IMAGE SCAN – TRIVY
-        ========================== */
         stage('Container Scan - Trivy') {
             steps {
                 sh """
@@ -83,9 +65,6 @@ pipeline {
             }
         }
 
-        /* =========================
-           DEPLOY TEMP APP (DAST)
-        ========================== */
         stage('Deploy for DAST') {
             steps {
                 sh '''
@@ -97,9 +76,6 @@ pipeline {
             }
         }
 
-        /* =========================
-           DAST – OWASP ZAP
-        ========================== */
         stage('DAST - OWASP ZAP') {
             steps {
                 sh '''
@@ -114,9 +90,6 @@ pipeline {
             }
         }
 
-        /* =========================
-           CLEANUP
-        ========================== */
         stage('Cleanup DAST') {
             steps {
                 sh 'docker rm -f zap-target || true'
@@ -124,9 +97,6 @@ pipeline {
         }
     }
 
-    /* =========================
-       POST ACTIONS
-    ========================== */
     post {
         always {
             script {
@@ -144,7 +114,7 @@ pipeline {
         }
 
         failure {
-            echo "❌ Pipeline failed due to security or quality gate violation"
+            echo "❌ Pipeline failed due to Quality Gate or security issues"
         }
     }
 }
