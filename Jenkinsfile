@@ -8,6 +8,9 @@ pipeline {
 
     stages {
 
+        /* =========================
+           CHECKOUT
+        ========================== */
         stage('Checkout Code') {
             steps {
                 git branch: 'main',
@@ -15,16 +18,23 @@ pipeline {
             }
         }
 
+        /* =========================
+           SAST – SONARQUBE
+        ========================== */
         stage('SAST - SonarQube Scan') {
             steps {
-                withSonarQubeEnv('SonarQube-Server') {
-                    sh '''
-                      sonar-scanner
-                    '''
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+                    withSonarQubeEnv('SonarQube-Server') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
                 }
             }
         }
 
+        /* =========================
+           QUALITY GATE
+        ========================== */
         stage('Quality Gate') {
             steps {
                 timeout(time: 2, unit: 'MINUTES') {
@@ -33,12 +43,15 @@ pipeline {
             }
         }
 
+        /* =========================
+           SCA – DEPENDENCY CHECK
+        ========================== */
         stage('SCA - Dependency Check') {
             steps {
                 script {
-                    def depCheckHome = tool 'dependency-check'
+                    def dc = tool 'dependency-check'
                     sh """
-                      ${depCheckHome}/bin/dependency-check.sh \
+                      ${dc}/bin/dependency-check.sh \
                         --scan . \
                         --format HTML \
                         --out dependency-report
@@ -47,12 +60,18 @@ pipeline {
             }
         }
 
+        /* =========================
+           DOCKER BUILD
+        ========================== */
         stage('Docker Build') {
             steps {
                 sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
+        /* =========================
+           CONTAINER SCAN – TRIVY
+        ========================== */
         stage('Container Scan - Trivy') {
             steps {
                 sh """
@@ -64,6 +83,9 @@ pipeline {
             }
         }
 
+        /* =========================
+           DEPLOY TEMP APP FOR DAST
+        ========================== */
         stage('Deploy for DAST') {
             steps {
                 sh '''
@@ -75,6 +97,9 @@ pipeline {
             }
         }
 
+        /* =========================
+           DAST – OWASP ZAP
+        ========================== */
         stage('DAST - OWASP ZAP') {
             steps {
                 sh '''
@@ -89,6 +114,9 @@ pipeline {
             }
         }
 
+        /* =========================
+           CLEANUP
+        ========================== */
         stage('Cleanup DAST') {
             steps {
                 sh 'docker rm -f zap-target || true'
@@ -96,6 +124,9 @@ pipeline {
         }
     }
 
+    /* =========================
+       POST ACTIONS
+    ========================== */
     post {
         always {
             script {
@@ -106,6 +137,14 @@ pipeline {
                     archiveArtifacts 'zap-report.*'
                 }
             }
+        }
+
+        success {
+            echo "✅ DevSecOps pipeline completed successfully"
+        }
+
+        failure {
+            echo "❌ Pipeline failed due to security or quality issues"
         }
     }
 }
