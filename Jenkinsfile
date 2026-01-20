@@ -33,11 +33,11 @@ pipeline {
         }
 
         /* =========================
-           QUALITY GATE
+           QUALITY GATE (ASYNC SAFE)
         ========================== */
         stage('Quality Gate') {
             steps {
-                timeout(time: 2, unit: 'MINUTES') {
+                timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -70,7 +70,7 @@ pipeline {
         }
 
         /* =========================
-           CONTAINER SCAN – TRIVY
+           IMAGE SCAN – TRIVY
         ========================== */
         stage('Container Scan - Trivy') {
             steps {
@@ -84,7 +84,7 @@ pipeline {
         }
 
         /* =========================
-           DEPLOY TEMP APP FOR DAST
+           DEPLOY TEMP APP (DAST)
         ========================== */
         stage('Deploy for DAST') {
             steps {
@@ -92,7 +92,7 @@ pipeline {
                   docker rm -f zap-target || true
                   docker run -d -p 8081:80 \
                     --name zap-target \
-                    devsecops-portal:${BUILD_NUMBER}
+                    ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
@@ -144,7 +144,7 @@ pipeline {
         }
 
         failure {
-            echo "❌ Pipeline failed due to security or quality issues"
+            echo "❌ Pipeline failed due to security or quality gate violation"
         }
     }
 }
