@@ -3,18 +3,12 @@ pipeline {
 
     stages {
 
-        /* =========================
-           CHECKOUT SOURCE
-           ========================= */
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        /* =========================
-           SAST – SONARQUBE
-           ========================= */
         stage('SAST - SonarQube') {
             steps {
                 withSonarQubeEnv('sonarqube') {
@@ -26,9 +20,6 @@ pipeline {
             }
         }
 
-        /* =========================
-           QUALITY GATE
-           ========================= */
         stage('Quality Gate') {
             steps {
                 timeout(time: 3, unit: 'MINUTES') {
@@ -37,15 +28,37 @@ pipeline {
             }
         }
 
-        /* =========================
-           SCA – OWASP DEPENDENCY CHECK
-           (PLUGIN-COMPATIBLE SYNTAX)
-           ========================= */
         stage('SCA - Dependency Check') {
             steps {
                 dependencyCheck(
                     odcInstallation: 'dependency-check',
-                    additionalArguments: '''
-                        --scan docs
-                        --format HTML
-                        --failOnCVSS 7
+                    additionalArguments: "--scan docs --format HTML --failOnCVSS 7"
+                )
+            }
+        }
+
+        stage('Publish SCA Report') {
+            steps {
+                dependencyCheckPublisher pattern: '**/dependency-check-report.html'
+            }
+        }
+
+        stage('Pipeline Complete') {
+            steps {
+                echo 'CI + SAST + SCA completed successfully'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'DevSecOps pipeline SUCCESS'
+        }
+        failure {
+            echo 'DevSecOps pipeline FAILED'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
