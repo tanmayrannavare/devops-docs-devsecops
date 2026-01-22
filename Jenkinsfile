@@ -31,7 +31,6 @@ pipeline {
                     waitForQualityGate abortPipeline: true
                 }
             }
-        }
 
         stage('SCA - Dependency Check') {
             steps {
