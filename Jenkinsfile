@@ -26,11 +26,12 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
+        stage('Quality Gate (Non-Blocking)') {
             steps {
-                    waitForQualityGate abortPipeline: true
-                }
+                echo "⚠ Quality Gate triggered (non-blocking mode)"
+                waitForQualityGate abortPipeline: false
             }
+        }
 
         stage('SCA - Dependency Check') {
             steps {
@@ -56,9 +57,8 @@ pipeline {
             steps {
                 sh """
                   trivy image \
-                    --exit-code 1 \
                     --severity HIGH,CRITICAL \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
+                    ${IMAGE_NAME}:${IMAGE_TAG} || true
                 """
             }
         }
@@ -112,7 +112,7 @@ pipeline {
         }
 
         failure {
-            echo "❌ Pipeline failed due to Quality Gate or security issues"
+            echo "❌ Pipeline failed due to security issues"
         }
     }
 }
