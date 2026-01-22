@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevSecOps Application</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 4em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        p {
+            font-size: 1.5em;
+            margin: 10px 0;
+            opacity: 0.95;
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(76, 175, 80, 0.3);
+            border-radius: 10px;
+            display: inline-block;
+        }
+        
+        .tools {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .tool-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 DevSecOps Pipeline</h1>
+        <p>Application deployed successfully!</p>
+        <p>Secure CI/CD Pipeline Active</p>
+        
+        <div class="status">
+            ✅ Status: Running on Port 80
+        </div>
+        
+        <div class="tools">
+            <div class="tool-badge">🔷 Jenkins</div>
+            <div class="tool-badge">🐳 Docker</div>
+            <div class="tool-badge">🔒 Trivy</div>
+            <div class="tool-badge">📊 SonarQube</div>
+            <div class="tool-badge">🛡️ OWASP ZAP</div>
+            <div class="tool-badge">📈 Prometheus</div>
+            <div class="tool-badge">📊 Grafana</div>
+        </div>
+    </div>
+</body>
+</html>
